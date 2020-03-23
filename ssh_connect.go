@@ -77,17 +77,24 @@ func (s *SSHConnect) Recv(conn *websocket.Conn, quit chan int) {
 
 func (s *SSHConnect) Output(conn *websocket.Conn, quit chan int) {
 	defer Quit(quit)
+	var (
+		read int
+		err  error
+	)
 	tick := time.NewTicker(120 * time.Millisecond)
 	defer tick.Stop()
+Loop:
 	for {
 		select {
 		case <-tick.C:
 			i := make([]byte, 1024)
-			if read, err := s.stdoutPipe.Read(i); err == nil {
-				if err := WsSendText(conn, i[:read]); err != nil {
-					fmt.Println(err)
-					Quit(quit)
-				}
+			if read, err = s.stdoutPipe.Read(i); err != nil {
+				fmt.Println(err)
+				goto Loop
+			}
+			if err = WsSendText(conn, i[:read]); err != nil {
+				fmt.Println(err)
+				goto Loop
 			}
 		}
 	}
