@@ -57,14 +57,50 @@ func NewSSHConnect(client *ssh.Client) (sshConn *SSHConnect, err error) {
 }
 
 //Receive messages from websocket
-func (s *SSHConnect) recv(wc *websocket.Conn) {
-	//todo
+func (s *SSHConnect) Recv(conn *websocket.Conn, quit chan int) {
+	defer Quit(quit)
+	var (
+		bytes []byte
+		err   error
+	)
+	for {
+		if bytes, err = WsRecv(conn); err != nil {
+			return
+		}
+		if len(bytes) > 0 {
+			if _, e := s.stdinPipe.Write(bytes); e != nil {
+				return
+			}
+		}
+	}
 }
 
+func (s *SSHConnect) Output(conn *websocket.Conn, quit chan int) {
+	defer Quit(quit)
+	tick := time.NewTicker(120 * time.Millisecond)
+	defer tick.Stop()
+	for {
+		select {
+		case <-tick.C:
+			i := make([]byte, 1024)
+			if read, err := s.stdoutPipe.Read(i); err == nil {
+				if err := WsSendText(conn, i[:read]); err != nil {
+					fmt.Println(err)
+					Quit(quit)
+				}
+			}
+		}
+	}
+}
+
+//test
 func (s *SSHConnect) recvv(command string) {
-	s.stdinPipe.Write([]byte(command))
+	if _, err := s.stdinPipe.Write([]byte(command)); err != nil {
+		fmt.Println(err)
+	}
 }
 
+//test
 func (s *SSHConnect) output() {
 	tick := time.NewTicker(120 * time.Millisecond)
 	defer tick.Stop()
@@ -73,8 +109,16 @@ func (s *SSHConnect) output() {
 		case <-tick.C:
 			i := make([]byte, 1024)
 			if read, err := s.stdoutPipe.Read(i); err == nil {
-				fmt.Println(string(i[:read]))
+				i2 := string(i[:read])
+				//Get head
+				//split := strings.Split( i2,"\n")
+				//fmt.Println(split[len(split)-1])
+				fmt.Println(i2)
 			}
 		}
 	}
+}
+
+func Quit(quit chan int) {
+	quit <- 1
 }

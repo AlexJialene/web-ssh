@@ -1,10 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gorilla/websocket"
-	"log"
+	"html/template"
 	"net/http"
-	"time"
 )
 
 var (
@@ -30,37 +30,34 @@ func wsHandle(w http.ResponseWriter, r *http.Request) {
 	//Create ssh client
 	if client, err := createSSHClient(user, password, host, port); err == nil {
 		defer client.Close()
+		//connect to ssh
+		sshConn, err := NewSSHConnect(client)
+		if err != nil {
+			fmt.Println(err)
+		}
 
+		quit := make(chan int)
+		go sshConn.Output(conn, quit)
+		go sshConn.Recv(conn, quit)
+		<-quit
 	}
 
 }
 
+func home(w http.ResponseWriter, r *http.Request) {
+	temp, e := template.ParseFiles("./template/index.html")
+	if e != nil {
+		fmt.Println(e)
+	}
+	temp.Execute(w, nil)
+	return
+}
+
 func main() {
-	//http.HandleFunc("/ws/v1" ,wsHandle)
+	http.Handle("/static/css/", http.StripPrefix("/static/css/", http.FileServer(http.Dir("static/css/"))))
+	http.Handle("/static/js/", http.StripPrefix("/static/js/", http.FileServer(http.Dir("static/js/"))))
 
-	client, err := createSSHClient(user, password, host, port)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	connect, err := NewSSHConnect(client)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	//connect.recvv("ll")
-	go connect.output()
-	time.Sleep(5000 * time.Millisecond)
-	connect.recvv("ll \n")
-
-	time.Sleep(5000 * time.Millisecond)
-	connect.recvv("docker ps \n")
-
-	time.Sleep(5000 * time.Millisecond)
-	connect.recvv("cd /opt")
-
-	time.Sleep(5000 * time.Millisecond)
-	connect.recvv("ll")
-
-	select {}
+	http.HandleFunc("/index", home)
+	http.HandleFunc("/ws/v1", wsHandle)
+	http.ListenAndServe(":8080", nil)
 }
