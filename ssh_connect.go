@@ -90,11 +90,11 @@ Loop:
 			i := make([]byte, 1024)
 			if read, err = s.stdoutPipe.Read(i); err != nil {
 				fmt.Println(err)
-				goto Loop
+				break Loop
 			}
 			if err = WsSendText(conn, i[:read]); err != nil {
 				fmt.Println(err)
-				goto Loop
+				break Loop
 			}
 		}
 	}
