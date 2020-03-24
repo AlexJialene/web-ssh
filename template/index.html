@@ -10,31 +10,90 @@
     <link rel="stylesheet" href="/static/css/main.css">
     <link rel="stylesheet" href="/static/css/font-awesome-css.min.css">
     <style>
-        html,body{
+        html, body {
             height: 100%;
+            width: 100%;
         }
 
     </style>
 </head>
-<body style="width: 100% ; height: 100%">
-<div id="terminal" style="width: 100% ; height: 100%"></div>
+<body>
+<div id="terminal"></div>
 <script src="../static/js/jquery.min.js"></script>
 <script src="../static/js/xterm.js"></script>
+<script src="../static/js/fit/fit.js"></script>
 <script>
     $(function () {
 
         var wid = Math.round(document.body.clientWidth / 10);
-        var hei = Math.round(document.body.clientHeight / 10);
+        var hei = Math.round(document.body.clientHeight / 17);
+        var header = ""
 
         // HACK: This should be window.Terminal once upgraded to 4.0.1
         var term = new window.Terminal.Terminal({
+            termName: "xterm",
             cols: wid,
             rows: hei,
-            cursorBlink: 5,
-            scrollback: 30,
-            tabStopWidth: 4
+            useStyle: true,
+            convertEol: true,
+            screenKeys: true,
+            cursorBlink: true,
+            visualBell: true,
         });
         term.open(document.getElementById('terminal'));
+
+        //websocket open
+        var socket = new WebSocket('ws://127.0.0.1:8080/ws/v1');
+        socket.onopen = function () {
+
+            if (term._initialized) {
+                return;
+            }
+            term._initialized = true;
+            term.fit()
+        }
+
+        socket.onmessage = function (msg) {
+            console.log(msg);
+            console.log(msg.data);
+            if (header === "") {
+                var split = msg.data.split("\n");
+                console.log(split)
+                header = split[split.length - 1]
+
+            }
+            term.write(msg.data);
+        };
+
+        /*term.prompt = () => {
+
+        };*/
+
+        term.onKey(e => {
+            const printable = !e.domEvent.altKey && !e.domEvent.altGraphKey && !e.domEvent.ctrlKey && !e.domEvent.metaKey;
+
+            if (e.domEvent.keyCode === 13) {
+                prompt(term);
+                console.log("111111111111111111111")
+                console.log(e.key)
+                console.log(term._core.buffer)
+
+            } else if (e.domEvent.keyCode === 8) {
+                // Do not delete the prompt
+                if (term._core.buffer.x > header.length) {
+                    term.write('\b \b');
+                }
+            } else if (printable) {
+                console.log("write")
+                term.write(e.key);
+            }
+        });
+
+        /*term.onData(e => {
+                console.log("111111111111111111111")
+                console.log(e)
+        })*/
+
 
         function runFakeTerminal() {
             if (term._initialized) {
@@ -68,18 +127,7 @@
 
         function prompt(term) {
             term.write('\r\n');
-            term.write('Hello from \x1B[1;3;31mxterm.js\x1B[0m $ ')
-        }
-
-        var socket = new WebSocket('ws://127.0.0.1:8080/ws/v1');
-        socket.onopen = function (){
-            runFakeTerminal();
-
-            socket.onmessage = function (msg) {
-                console.log(msg);
-                console.log(msg.data);
-                term.write(msg.data);
-            };
+            //term.write('Hello from \x1B[1;3;31mxterm.js\x1B[0m $ ')
         }
 
     });
