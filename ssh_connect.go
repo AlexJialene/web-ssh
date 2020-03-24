@@ -81,7 +81,7 @@ func (s *SSHConnect) Output(conn *websocket.Conn, quit chan int) {
 		read int
 		err  error
 	)
-	tick := time.NewTicker(120 * time.Millisecond)
+	tick := time.NewTicker(60 * time.Millisecond)
 	defer tick.Stop()
 Loop:
 	for {
