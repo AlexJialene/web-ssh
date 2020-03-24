@@ -21,7 +21,6 @@
 <div id="terminal"></div>
 <script src="../static/js/jquery.min.js"></script>
 <script src="../static/js/xterm.js"></script>
-<script src="../static/js/fit/fit.js"></script>
 <script>
     $(function () {
 
@@ -45,22 +44,19 @@
         //websocket open
         var socket = new WebSocket('ws://127.0.0.1:8080/ws/v1');
         socket.onopen = function () {
-
             if (term._initialized) {
                 return;
             }
             term._initialized = true;
-            term.fit()
         }
 
         socket.onmessage = function (msg) {
             console.log(msg);
             console.log(msg.data);
-            if (header === "") {
+            if (msg.data != null || header === "") {
                 var split = msg.data.split("\n");
                 console.log(split)
                 header = split[split.length - 1]
-
             }
             term.write(msg.data);
         };
@@ -72,11 +68,10 @@
         term.onKey(e => {
             const printable = !e.domEvent.altKey && !e.domEvent.altGraphKey && !e.domEvent.ctrlKey && !e.domEvent.metaKey;
 
+            socket.send(e.key)
+
             if (e.domEvent.keyCode === 13) {
                 prompt(term);
-                console.log("111111111111111111111")
-                console.log(e.key)
-                console.log(term._core.buffer)
 
             } else if (e.domEvent.keyCode === 8) {
                 // Do not delete the prompt
@@ -84,7 +79,6 @@
                     term.write('\b \b');
                 }
             } else if (printable) {
-                console.log("write")
                 term.write(e.key);
             }
         });
