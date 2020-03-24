@@ -10,7 +10,7 @@ You can modify the server connection parameters in lines 18 to 21 in the main.go
 
 ### image
 
-![](https://lamkeizyi.oss-cn-shenzhen.aliyuncs.com/WX20200324-215021.png)
+![img](https://lamkeizyi.oss-cn-shenzhen.aliyuncs.com/WX20200324-215021.png)
 
 `license`
 
